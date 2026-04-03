@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Financial Dashboard - Vanilla JS</title>
+<style>
+  :root {
+    --background-light: #f9f9f9;
+    --text-light: #333;
+    --card-bg-light: #fff;
+    --card-border-light: #ddd;
+    --button-bg-light: #007bff;
+    --button-hover-bg-light: #0056b3;
+    --income-color: #4caf50;
+    --expense-color: #f44336;
+    --balance-color: #2196f3;
+  }
+  [data-theme="dark"] {
+    --background-light: #121212;
+    --text-light: #eeeeee;
+    --card-bg-light: #1e1e1e;
+    --card-border-light: #444;
+    --button-bg-light: #2196f3;
+    --button-hover-bg-light: #1769aa;
+  }
+
+  body {
+    background: var(--background-light);
+    color: var(--text-light);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 1rem;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  h1,h2,h3 {
+    margin-bottom: 0.25rem;
+  }
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  header h1 {
+    flex: 1 1 200px;
+  }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+  }
+  select, button {
+    padding: 0.4rem 0.8rem;
+    font-size: 1rem;
+    cursor: pointer;
+    border-radius: 4px;
+    border: 1px solid var(--card-border-light);
+    background: var(--card-bg-light);
+    color: var(--text-light);
+    transition: background-color 0.3s;
+  }
+  select:focus, button:focus {
+    outline-color: var(--button-bg-light);
+    outline-offset: 2px;
+  }
+  button:hover {
+    background-color: var(--button-hover-bg-light);
+    color: white;
+  }
+  .dashboard, .transactions, .insights {
+    background: var(--card-bg-light);
+    border: 1px solid var(--card-border-light);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  /* Summary Cards */
+  .summary-cards {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .card {
+    flex: 1;
+    min-width: 150px;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgb(0 0 0 / 0.12);
+    text-align: center;
+    transition: background-color 0.3s, box-shadow 0.3s;
+  }
+  .card h3 {
+    margin-bottom: 0.5rem;
+  }
+  .income {
+    border-top: 5px solid var(--income-color);
+  }
+  .expense {
+    border-top: 5px solid var(--expense-color);
+  }
+  .balance {
+    border-top: 5px solid var(--balance-color);
+  }
+
+  /* Charts - simple inline SVG styles */
+  .charts {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+  }
+  .chart {
+    flex: 1 1 320px;
+    background: var(--card-bg-light);
+    border: 1px solid var(--card-border-light);
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 2px 5px rgb(0 0 0 / 0.1);
+  }
+  .chart svg {
+    width: 100%;
+    height: 220px;
+  }
+
+  /* Transactions Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  th, td {
+    padding: 0.5rem;
+    border: 1px solid var(--card-border-light);
+    text-align: left;
+  }
+  th {
+    background: var(--background-light);
+  }
+  tr:hover {
+    background-color: rgba(33, 150, 243, 0.1);
+  }
+  button.action-btn {
+    background: var(--button-bg-light);
+    border: none;
+    color: white;
+    padding: 0.3rem 0.6rem;
+    margin-right: 0.25rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.3s;
+  }
+  button.action-btn:hover {
+    background: var(--button-hover-bg-light);
+  }
+
+  /* Forms */
+  form {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+    align-items: flex-end;
+  }
+  label {
+    display: flex;
+    flex-direction: column;
+    min-width: 120px;
+  }
+  input, select {
+    padding: 0.3rem;
+    font-size: 1rem;
+    border: 1px solid var(--card-border-light);
+    border-radius: 4px;
+    background: var(--card-bg-light);
+    color: var(--text-light);
+    transition: border-color 0.3s;
+  }
+  input:focus, select:focus {
+    border-color: var(--button-bg-light);
+    outline: none;
+  }
+  form button {
+    min-width: 100px;
+  }
+
+  /* Filters */
+  .filters {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  /* Insights */
+  .insight-item {
+    margin-bottom: 1rem;
+    font-size: 1rem;
+  }
+
+  /* Responsive */
+  @media (max-width: 720px) {
+    .summary-cards {
+      flex-direction: column;
+    }
+    .charts {
+      flex-direction: column;
+    }
+    form {
+      flex-direction: column;
+    }
+    header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .controls {
+      justify-content: flex-start;
+    }
+  }
+</style>
+</head>
+<body data-theme="light">
+
+<header>
+  <h1>Financial Dashboard</h1>
+  <div class="controls">
+    <label>
+      Role:
+      <select id="role-select" aria-label="Select user role">
+        <option value="viewer">Viewer</option>
+        <option value="admin">Admin</option>
+      </select>
+    </label>
+    <button id="dark-mode-toggle" aria-label="Toggle dark mode">🌙 Dark Mode</button>
+  </div>
+</header>
+
+<section class="dashboard" aria-label="Dashboard overview">
+  <h2>Dashboard Overview</h2>
+  <div class="summary-cards" id="summary-cards" aria-live="polite"></div>
+
+  <div class="charts">
+    <section class="chart" aria-label="Balance trend chart">
+      <h3>Balance Trend</h3>
+      <svg id="balance-trend-chart" viewBox="0 0 400 220" role="img" aria-labelledby="balanceTrendTitle"></svg>
+    </section>
+
+    <section class="chart" aria-label="Spending breakdown chart">
+      <h3>Spending Breakdown</h3>
+      <svg id="spending-breakdown-chart" viewBox="0 0 400 220" role="img" aria-labelledby="spendingBreakdownTitle"></svg>
+    </section>
+  </div>
+</section>
+
+<section class="transactions" aria-label="Transactions section">
+  <h2>Transactions</h2>
+
+  <div class="filters" aria-label="Filters">
+    <label>
+      Type:
+      <select id="filter-type" aria-controls="transaction-table">
+        <option value="all">All</option>
+        <option value="income">Income</option>
+        <option value="expense">Expense</option>
+      </select>
+    </label>
+
+    <label>
+      Category:
+      <input type="text" placeholder="Search category" id="filter-search" aria-controls="transaction-table" />
+    </label>
+
+    <label>
+      Date From:
+      <input type="date" id="filter-date-from" aria-controls="transaction-table" />
+    </label>
+
+    <label>
+      Date To:
+      <input type="date" id="filter-date-to" aria-controls="transaction-table" />
+    </label>
+
+    <label>
+      Sort:
+      <select id="filter-sort" aria-controls="transaction-table">
+        <option value="dateDesc">Date Desc</option>
+        <option value="dateAsc">Date Asc</option>
+        <option value="amountAsc">Amount Asc</option>
+        <option value="amountDesc">Amount Desc</option>
+      </select>
+    </label>
+
+    <button id="clear-filters-btn" aria-label="Clear filters">Clear Filters</button>
+  </div>
+
+  <table id="transaction-table" aria-live="polite">
+    <thead>
+      <tr>
+        <th>Date</th><th>Amount</th><th>Category</th><th>Type</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <form id="transaction-form" aria-label="Add or edit transaction form">
+    <h3 id="form-title">Add Transaction</h3>
+    <label>
+      Date:
+      <input type="date" id="tx-date" required />
+    </label>
+    <label>
+      Amount:
+      <input type="number" step="0.01" id="tx-amount" min="0.01" required />
+    </label>
+    <label>
+      Category:
+      <input type="text" id="tx-category" required placeholder="E.g., Food, Salary" />
+    </label>
+    <label>
+      Type:
+      <select id="tx-type" required>
+        <option value="expense">Expense</option>
+        <option value="income">Income</option>
+      </select>
+    </label>
+    <button type="submit" id="form-submit-btn">Add</button>
+    <button type="button" id="form-cancel-btn" style="display:none;">Cancel</button>
+  </form>
+
+  <div style="margin-top: 1rem;">
+    <button id="export-csv-btn">Export CSV</button>
+    <button id="export-json-btn">Export JSON</button>
+  </div>
+</section>
+
+<section class="insights" aria-label="Insights section">
+  <h2>Insights</h2>
+  <div class="insight-item" id="insight-highest-spending"></div>
+  <div class="insight-item" id="insight-monthly-comparison"></div>
+  <div class="insight-item" id="insight-income-expense-ratio"></div>
+</section>
+
+<script>
+function getDemoData(){
+  return [
+    // January 2026
+    { id: '1', date: '2026-01-01', amount: 2500, category: 'Salary', type: 'income' },
+    { id: '2', date: '2026-01-02', amount: 200, category: 'Groceries', type: 'expense' },
+    { id: '3', date: '2026-01-03', amount: 60, category: 'Transportation', type: 'expense' },
+    { id: '4', date: '2026-01-05', amount: 150, category: 'Freelance', type: 'income' },
+    { id: '5', date: '2026-01-07', amount: 100, category: 'Utilities', type: 'expense' },
+    { id: '6', date: '2026-01-10', amount: 90, category: 'Eating Out', type: 'expense' },
+    
+    // February 2026
+    { id: '7', date: '2026-02-01', amount: 2600, category: 'Salary', type: 'income' },
+    { id: '8', date: '2026-02-03', amount: 210, category: 'Groceries', type: 'expense' },
+    { id: '9', date: '2026-02-06', amount: 70, category: 'Transportation', type: 'expense' },
+    { id: '10', date: '2026-02-07', amount: 200, category: 'Freelance', type: 'income' },
+    { id: '11', date: '2026-02-10', amount: 120, category: 'Utilities', type: 'expense' },
+    { id: '12', date: '2026-02-12', amount: 100, category: 'Entertainment', type: 'expense' },
+
+    // March 2026
+    { id: '13', date: '2026-03-01', amount: 2650, category: 'Salary', type: 'income' },
+    { id: '14', date: '2026-03-04', amount: 230, category: 'Groceries', type: 'expense' },
+    { id: '15', date: '2026-03-06', amount: 80, category: 'Transportation', type: 'expense' },
+    { id: '16', date: '2026-03-08', amount: 300, category: 'Freelance', type: 'income' },
+    { id: '17', date: '2026-03-11', amount: 110, category: 'Utilities', type: 'expense' },
+    { id: '18', date: '2026-03-15', amount: 105, category: 'Eating Out', type: 'expense' },
+    { id: '19', date: '2026-03-20', amount: 130, category: 'Entertainment', type: 'expense' },
+  ];
+}
+(() => {
+  // State
+  let state = {
+    transactions: [],
+    filters: {
+      type: 'all',
+      search: '',
+      dateFrom: '',
+      dateTo: '',
+      sortBy: 'dateDesc',
+    },
+    userRole: 'viewer', // 'viewer' or 'admin'
+    editingTxId: null,
+    darkMode: false,
+  };
+
+function getDemoData(){
+  return [
+    // January 2026
+    { id: '1', date: '2026-01-01', amount: 2500, category: 'Salary', type: 'income' },
+    { id: '2', date: '2026-01-02', amount: 200, category: 'Groceries', type: 'expense' },
+    { id: '3', date: '2026-01-03', amount: 60, category: 'Transportation', type: 'expense' },
+    { id: '4', date: '2026-01-05', amount: 150, category: 'Freelance', type: 'income' },
+    { id: '5', date: '2026-01-07', amount: 100, category: 'Utilities', type: 'expense' },
+    { id: '6', date: '2026-01-10', amount: 90, category: 'Eating Out', type: 'expense' },
+    
+    // February 2026
+    { id: '7', date: '2026-02-01', amount: 2600, category: 'Salary', type: 'income' },
+    { id: '8', date: '2026-02-03', amount: 210, category: 'Groceries', type: 'expense' },
+    { id: '9', date: '2026-02-06', amount: 70, category: 'Transportation', type: 'expense' },
+    { id: '10', date: '2026-02-07', amount: 200, category: 'Freelance', type: 'income' },
+    { id: '11', date: '2026-02-10', amount: 120, category: 'Utilities', type: 'expense' },
+    { id: '12', date: '2026-02-12', amount: 100, category: 'Entertainment', type: 'expense' },
+
+    // March 2026
+    { id: '13', date: '2026-03-01', amount: 2650, category: 'Salary', type: 'income' },
+    { id: '14', date: '2026-03-04', amount: 230, category: 'Groceries', type: 'expense' },
+    { id: '15', date: '2026-03-06', amount: 80, category: 'Transportation', type: 'expense' },
+    { id: '16', date: '2026-03-08', amount: 300, category: 'Freelance', type: 'income' },
+    { id: '17', date: '2026-03-11', amount: 110, category: 'Utilities', type: 'expense' },
+    { id: '18', date: '2026-03-15', amount: 105, category: 'Eating Out', type: 'expense' },
+    { id: '19', date: '2026-03-20', amount: 130, category: 'Entertainment', type: 'expense' },
+  ];
+}
+
+  // Elements
+  const roleSelect = document.getElementById('role-select');
+  const darkModeToggle = document.getElementById('dark-mode-toggle');
+  const summaryCards = document.getElementById('summary-cards');
+  const balanceTrendChart = document.getElementById('balance-trend-chart');
+  const spendingBreakdownChart = document.getElementById('spending-breakdown-chart');
+  const filterType = document.getElementById('filter-type');
+  const filterSearch = document.getElementById('filter-search');
+  const filterDateFrom = document.getElementById('filter-date-from');
+  const filterDateTo = document.getElementById('filter-date-to');
+  const filterSort = document.getElementById('filter-sort');
+  const clearFiltersBtn = document.getElementById('clear-filters-btn');
+  const transactionTableBody = document.querySelector('#transaction-table tbody');
+  const txForm = document.getElementById('transaction-form');
+  const txDate = document.getElementById('tx-date');
+  const txAmount = document.getElementById('tx-amount');
+  const txCategory = document.getElementById('tx-category');
+  const txType = document.getElementById('tx-type');
+  const formTitle = document.getElementById('form-title');
+  const formSubmitBtn = document.getElementById('form-submit-btn');
+  const formCancelBtn = document.getElementById('form-cancel-btn');
+  const insightHighestSpending = document.getElementById('insight-highest-spending');
+  const insightMonthlyComparison = document.getElementById('insight-monthly-comparison');
+  const insightIncomeExpenseRatio = document.getElementById('insight-income-expense-ratio');
+  const exportCsvBtn = document.getElementById('export-csv-btn');
+  const exportJsonBtn = document.getElementById('export-json-btn');
+
+  // Utils
+  // Save/load to localStorage with JSON
+  function saveToStorage(){
+    localStorage.setItem('fd_transactions', JSON.stringify(state.transactions));
+    localStorage.setItem('fd_userRole', state.userRole);
+    localStorage.setItem('fd_darkMode', state.darkMode);
+  }
+  function loadFromStorage(){
+    const txRaw = localStorage.getItem('fd_transactions');
+    if(txRaw) state.transactions = JSON.parse(txRaw);
+    const roleRaw = localStorage.getItem('fd_userRole');
+    if(roleRaw) state.userRole = roleRaw;
+    const darkRaw = localStorage.getItem('fd_darkMode');
+    if(darkRaw) {
+      state.darkMode = darkRaw === 'true';
+      document.body.setAttribute('data-theme', state.darkMode ? 'dark' : 'light');
+      darkModeToggle.textContent = state.darkMode ? '☀️ Light Mode' : '🌙 Dark Mode';
+    }
+  }
+  // Format date e.g. 2026-04-01 -> Apr 01, 2026
+  function formatDate(dstr){
+    if(!dstr) return '';
+    const d = new Date(dstr);
+    if(isNaN(d))return dstr;
+    return d.toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric'});
+  }
+  // Generate unique ID
+  function generateId(){
+    return '_' + Math.random().toString(36).substr(2, 9);
+  }
+  // Format number with fixed decimals and commas
+  function formatAmount(a){
+    return Number(a).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+
+  // Filtering & Sorting
+  function getFilteredSortedTransactions(){
+    return state.transactions.filter(tx => {
+      if(state.filters.type !== 'all' && tx.type !== state.filters.type) return false;
+      if(state.filters.search && !tx.category.toLowerCase().includes(state.filters.search.toLowerCase())) return false;
+      if(state.filters.dateFrom && new Date(tx.date) < new Date(state.filters.dateFrom)) return false;
+      if(state.filters.dateTo && new Date(tx.date) > new Date(state.filters.dateTo)) return false;
+      return true;
+    }).sort((a,b)=>{
+      switch(state.filters.sortBy){
+        case 'dateAsc': return new Date(a.date) - new Date(b.date);
+        case 'dateDesc': return new Date(b.date) - new Date(a.date);
+        case 'amountAsc': return a.amount - b.amount;
+        case 'amountDesc': return b.amount - a.amount;
+        default: return 0;
+      }
+    });
+  }
+
+  // Render functions
+  function renderSummaryCards(){
+    let income=0, expense=0;
+    state.transactions.forEach(tx => {
+      if(tx.type==='income') income += tx.amount;
+      else if(tx.type==='expense') expense += tx.amount;
+    });
+    const balance = income - expense;
+    summaryCards.innerHTML = `
+      <div class="card income" role="region" aria-label="Total Income">
+        <h3>Total Income</h3>
+        <p>$${formatAmount(income)}</p>
+      </div>
+      <div class="card expense" role="region" aria-label="Total Expenses">
+        <h3>Total Expenses</h3>
+        <p>$${formatAmount(expense)}</p>
+      </div>
+      <div class="card balance" role="region" aria-label="Balance">
+        <h3>Balance</h3>
+        <p>$${formatAmount(balance)}</p>
+      </div>
+    `;
+  }
+
+
+  // Simple line chart for balance trend using SVG polyline
+  function renderBalanceTrendChart(){
+    const SVG_WIDTH = 400, SVG_HEIGHT = 220, PADDING=40;
+    // Sort transactions by date
+    const sortedTx = [...state.transactions].sort((a,b) => new Date(a.date) - new Date(b.date));
+    if(sortedTx.length === 0){
+      balanceTrendChart.innerHTML = '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="gray">No data</text>';
+      return;
+    }
+    // Map date to cumulative balance
+    const datesSet = new Set(sortedTx.map(tx => tx.date));
+    const uniqueDates = Array.from(datesSet).sort((a,b) => new Date(a)-new Date(b));
+    let cumulativeSum = 0;
+    const dataPoints = uniqueDates.map(date => {
+      const txsOnDate = sortedTx.filter(tx => tx.date === date);
+      let amountChange = 0;
+      txsOnDate.forEach(tx => {
+        amountChange += (tx.type === 'income' ? tx.amount : -tx.amount);
+      });
+      cumulativeSum += amountChange;
+      return { date, balance: cumulativeSum };
+    });
+    // Normalize data for SVG coords
+    const minBalance = Math.min(...dataPoints.map(dp => dp.balance), 0);
+    const maxBalance = Math.max(...dataPoints.map(dp => dp.balance), 0);
+    const dateCount = dataPoints.length;
+
+    const points = dataPoints.map((dp,i)=> {
+      const x = PADDING + (i * (SVG_WIDTH - 2*PADDING) / (dateCount - 1));
+      const y = SVG_HEIGHT - PADDING - ((dp.balance - minBalance) * (SVG_HEIGHT - 2*PADDING) / (maxBalance - minBalance || 1));
+      return [x,y];
+    });
+    // Build polyline points string
+    const pointsStr = points.map(p => p.join(',')).join(' ');
+
+    // Build SVG axes, polyline with stroke, points circles and labels
+    const datesSplitted = [uniqueDates[0], uniqueDates[Math.floor(dateCount/2)], uniqueDates[dateCount-1]];
+    const yLabels = [maxBalance, (maxBalance + minBalance)/2, minBalance];
+
+    balanceTrendChart.innerHTML = `
+      <line x1="${PADDING}" y1="${PADDING}" x2="${PADDING}" y2="${SVG_HEIGHT - PADDING}" stroke="gray" stroke-width="1" />
+      <line x1="${PADDING}" y1="${SVG_HEIGHT - PADDING}" x2="${SVG_WIDTH - PADDING}" y2="${SVG_HEIGHT - PADDING}" stroke="gray" stroke-width="1" />
+      <polyline fill="none" stroke="var(--income-color)" stroke-width="2" points="${pointsStr}" />
+      ${points.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="var(--income-color)" />`).join('')}
+      ${datesSplitted.map((date,i) => {
+        const x = PADDING + i*(SVG_WIDTH-2*PADDING)/2;
+        return `<text x="${x}" y="${SVG_HEIGHT-PADDING+15}" font-size="10" text-anchor="middle" fill="var(--text-light)">${formatDate(date)}</text>`;
+      }).join('')}
+      ${yLabels.map((val,i) => {
+        const y = PADDING + i*(SVG_HEIGHT - 2*PADDING)/2;
+        return `<text x="${PADDING-5}" y="${y+4}" font-size="10" text-anchor="end" fill="var(--text-light)">${formatAmount(val)}</text>`;
+      }).join('')}
+    `;
+  }
+
+  // Simple pie chart for spending breakdown using SVG arcs
+  function renderSpendingBreakdownChart(){
+    const SVG_WIDTH = 400, SVG_HEIGHT = 220;
+    const RADIUS = 90;
+    const CX = SVG_WIDTH/2;
+    const CY = SVG_HEIGHT/2 + 10;
+
+    // Calculate total expenses by category
+    const expenseTx = state.transactions.filter(tx => tx.type === 'expense');
+    if(expenseTx.length === 0){
+      spendingBreakdownChart.innerHTML = '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="gray">No expenses</text>';
+      return;
+    }
+    const totals = {};
+    expenseTx.forEach(tx => {
+      totals[tx.category] = (totals[tx.category] || 0) + tx.amount;
+    });
+    const totalExpense = Object.values(totals).reduce((a,b) => a+b,0);
+    // Colors
+    const colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AA336A', '#88AA00', '#FF4444', '#AA55FF', '#33AAAA'];
+
+    // Generate arcs
+    let startAngle = 0;
+    let arcs = '';
+    let legend = [];
+    Object.entries(totals).forEach(([cat, amt], i) => {
+      const angle = 2 * Math.PI * amt / totalExpense;
+      const endAngle = startAngle + angle;
+
+      // Arc coordinates
+      const x1 = CX + RADIUS * Math.cos(startAngle);
+      const y1 = CY + RADIUS * Math.sin(startAngle);
+      const x2 = CX + RADIUS * Math.cos(endAngle);
+      const y2 = CY + RADIUS * Math.sin(endAngle);
+
+      const largeArcFlag = angle > Math.PI ? 1 : 0;
+
+      arcs += `<path d="M${CX},${CY} L${x1},${y1} A${RADIUS},${RADIUS} 0 ${largeArcFlag} 1 ${x2},${y2} Z" fill="${colors[i % colors.length]}" stroke="#fff" stroke-width="1"></path>`;
+
+      // Legend item (square)
+      legend.push(`<div style="display:flex; align-items:center;gap:6px; margin-bottom:2px;">
+        <span style="display:inline-block;width:14px; height:14px; background:${colors[i % colors.length]}; border-radius:3px;"></span>
+        <span>${cat} (${formatAmount(amt)})</span>
+      </div>`);
+
+      startAngle = endAngle;
+    });
+
+    spendingBreakdownChart.innerHTML = `${arcs}
+      <foreignObject x="${CX + RADIUS + 10}" y="${CY - RADIUS}" width="150" height="${legend.length*22}" >
+        <body xmlns="http://www.w3.org/1999/xhtml" style="font-size:14px; color: var(--text-light); font-family: sans-serif;">
+          ${legend.join('')}
+        </body>
+      </foreignObject>
+    `;
+  }
+
+  // Render transactions table filtered and sorted
+  function renderTransactionsTable(){
+    const trans = getFilteredSortedTransactions();
+    transactionTableBody.innerHTML = '';
+
+    if(trans.length === 0){
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 5;
+      td.style.textAlign = 'center';
+      td.textContent = 'No transactions found.';
+      tr.appendChild(td);
+      transactionTableBody.appendChild(tr);
+      return;
+    }
+
+    trans.forEach(tx => {
+      const tr = document.createElement('tr');
+
+      const tdDate = document.createElement('td');
+      tdDate.textContent = formatDate(tx.date);
+      tdDate.setAttribute('data-label', 'Date');
+      tr.appendChild(tdDate);
+
+      const tdAmount = document.createElement('td');
+      tdAmount.textContent = `$${formatAmount(tx.amount)}`;
+      tdAmount.setAttribute('data-label', 'Amount');
+      tdAmount.style.color = tx.type === 'income' ? 'var(--income-color)' : 'var(--expense-color)';
+      tr.appendChild(tdAmount);
+
+      const tdCat = document.createElement('td');
+      tdCat.textContent = tx.category;
+      tdCat.setAttribute('data-label', 'Category');
+      tr.appendChild(tdCat);
+
+      const tdType = document.createElement('td');
+      tdType.textContent = tx.type.charAt(0).toUpperCase() + tx.type.slice(1);
+      tdType.setAttribute('data-label', 'Type');
+      tr.appendChild(tdType);
+
+      const tdActions = document.createElement('td');
+      tdActions.setAttribute('data-label', 'Actions');
+
+      if(state.userRole === 'admin'){
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Edit';
+        editBtn.className = 'action-btn';
+        editBtn.setAttribute('aria-label', `Edit transaction ${tx.category} on ${formatDate(tx.date)}`);
+        editBtn.addEventListener('click', () => startEditTransaction(tx.id));
+        tdActions.appendChild(editBtn);
+
+        const delBtn = document.createElement('button');
+        delBtn.textContent = 'Delete';
+        delBtn.className = 'action-btn';
+        delBtn.setAttribute('aria-label', `Delete transaction ${tx.category} on ${formatDate(tx.date)}`);
+        delBtn.addEventListener('click', () => deleteTransaction(tx.id));
+        tdActions.appendChild(delBtn);
+      } else {
+        tdActions.textContent = '-';
+      }
+
+      tr.appendChild(tdActions);
+      transactionTableBody.appendChild(tr);
+    });
+  }
+
+  // Render insights
+  function renderInsights(){
+    // Highest spending category
+    const expenseTx = state.transactions.filter(tx => tx.type === 'expense');
+    if(expenseTx.length === 0){
+      insightHighestSpending.textContent = 'No expense data to calculate highest spending category.';
+      insightMonthlyComparison.textContent = '';
+      insightIncomeExpenseRatio.textContent = '';
+      return;
+    }
+    const spendingByCat = expenseTx.reduce((acc, tx) => {
+      acc[tx.category] = (acc[tx.category]||0) + tx.amount;
+      return acc;
+    }, {});
+    const highestCat = Object.entries(spendingByCat).reduce((max, entry) => entry[1] > max[1] ? entry : max, ['', 0]);
+    insightHighestSpending.textContent = `Highest spending category: ${highestCat[0]} — $${formatAmount(highestCat[1])}`;
+
+    // Monthly comparison this month vs prev month (expenses only)
+    const now = new Date();
+    const thisMonth = now.getMonth();
+    const thisYear = now.getFullYear();
+    const lastMonth = thisMonth === 0 ? 11 : thisMonth -1;
+    const lastMonthYear = thisMonth === 0 ? thisYear -1 : thisYear;
+    let thisMonthSum = 0;
+    let lastMonthSum = 0;
+    expenseTx.forEach(tx => {
+      const d = new Date(tx.date);
+      if(d.getFullYear() === thisYear && d.getMonth() === thisMonth) thisMonthSum += tx.amount;
+      if(d.getFullYear() === lastMonthYear && d.getMonth() === lastMonth) lastMonthSum += tx.amount;
+    });
+    insightMonthlyComparison.textContent = `Expenses comparison: this month $${formatAmount(thisMonthSum)} vs previous month $${formatAmount(lastMonthSum)}`;
+
+    // Income/expense ratio
+    let incomeSum = 0;
+    state.transactions.forEach(tx => { if(tx.type==='income') incomeSum += tx.amount; });
+    if(expenseTx.length === 0){
+      insightIncomeExpenseRatio.textContent = 'No expenses recorded yet.';
+    }else{
+      const ratio = (incomeSum / (expenseTx.reduce((a,b) => a+b.amount, 0) || 1)).toFixed(2);
+      insightIncomeExpenseRatio.textContent = `Income is ${ratio} times the expense.`;
+    }
+  }
+
+  // Reset form
+  function resetForm(){
+    txDate.value = '';
+    txAmount.value = '';
+    txCategory.value = '';
+    txType.value = 'expense';
+    state.editingTxId = null;
+    formTitle.textContent = 'Add Transaction';
+    formSubmitBtn.textContent = 'Add';
+    formCancelBtn.style.display = 'none';
+  }
+
+  // Start editing transaction
+  function startEditTransaction(id){
+    const tx = state.transactions.find(t => t.id === id);
+    if(!tx) return;
+    state.editingTxId = id;
+    txDate.value = tx.date;
+    txAmount.value = tx.amount;
+    txCategory.value = tx.category;
+    txType.value = tx.type;
+    formTitle.textContent = 'Edit Transaction';
+    formSubmitBtn.textContent = 'Save';
+    formCancelBtn.style.display = 'inline-block';
+    window.scrollTo({top: txForm.offsetTop - 50, behavior: 'smooth'});
+  }
+
+  // Delete transaction
+  function deleteTransaction(id){
+    if(confirm('Are you sure you want to delete this transaction?')){
+      state.transactions = state.transactions.filter(tx => tx.id !== id);
+      saveToStorage();
+      renderAll();
+    }
+  }
+
+  // Handle form submission for add/edit
+  txForm.addEventListener('submit', e=>{
+    e.preventDefault();
+    const dateVal = txDate.value;
+    const amountVal = parseFloat(txAmount.value);
+    const categoryVal = txCategory.value.trim();
+    const typeVal = txType.value;
+
+    if(!dateVal || !amountVal || !categoryVal || !typeVal) {
+      alert('Please complete all fields.');
+      return;
+    }
+    if(amountVal <= 0){
+      alert('Amount must be greater than zero.');
+      return;
+    }
+    if(state.editingTxId){
+      // Edit existing
+      const index = state.transactions.findIndex(tx => tx.id === state.editingTxId);
+      if(index >=0 ){
+        state.transactions[index] = {
+          id: state.editingTxId,
+          date: dateVal,
+          amount: amountVal,
+          category: categoryVal,
+          type: typeVal,
+        };
+      }
+    } else {
+      // Add new
+      state.transactions.push({
+        id: generateId(),
+        date: dateVal,
+        amount: amountVal,
+        category: categoryVal,
+        type: typeVal,
+      });
+    }
+    saveToStorage();
+    resetForm();
+    renderAll();
+  });
+
+  // Cancel editing
+  formCancelBtn.addEventListener('click', e => {
+    resetForm();
+  });
+
+  // Filters handlers
+  filterType.addEventListener('change', e => {
+    state.filters.type = e.target.value;
+    renderAll();
+  });
+  filterSearch.addEventListener('input', e => {
+    state.filters.search = e.target.value;
+    renderAll();
+  });
+  filterDateFrom.addEventListener('change', e => {
+    state.filters.dateFrom = e.target.value;
+    renderAll();
+  });
+  filterDateTo.addEventListener('change', e => {
+    state.filters.dateTo = e.target.value;
+    renderAll();
+  });
+  filterSort.addEventListener('change', e => {
+    state.filters.sortBy = e.target.value;
+    renderAll();
+  });
+  clearFiltersBtn.addEventListener('click', e => {
+    filterType.value = 'all';
+    filterSearch.value = '';
+    filterDateFrom.value = '';
+    filterDateTo.value = '';
+    filterSort.value = 'dateDesc';
+    state.filters = {
+      type: 'all',
+      search: '',
+      dateFrom: '',
+      dateTo: '',
+      sortBy: 'dateDesc',
+    };
+    renderAll();
+  });
+
+  // Role change
+  roleSelect.addEventListener('change', e => {
+    state.userRole = e.target.value;
+    resetForm();
+    renderAll();
+    saveToStorage();
+  });
+
+  // Dark mode toggle
+  darkModeToggle.addEventListener('click', e => {
+    state.darkMode = !state.darkMode;
+    document.body.setAttribute('data-theme', state.darkMode ? 'dark' : 'light');
+    darkModeToggle.textContent = state.darkMode ? '☀️ Light Mode' : '🌙 Dark Mode';
+    saveToStorage();
+  });
+
+  // Export CSV
+  exportCsvBtn.addEventListener('click', e => {
+    if(state.transactions.length === 0){
+      alert('No transactions to export.');
+      return;
+    }
+    const header = ['ID', 'Date', 'Amount', 'Category', 'Type'];
+    const rows = state.transactions.map(tx => [tx.id, tx.date, tx.amount.toFixed(2), tx.category, tx.type]);
+    const csvContent = [header, ...rows].map(e => e.join(',')).join('\n');
+    const blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'transactions.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // Export JSON
+  exportJsonBtn.addEventListener('click', e => {
+    if(state.transactions.length === 0){
+      alert('No transactions to export.');
+      return;
+    }
+    const jsonStr = JSON.stringify(state.transactions, null, 2);
+    const blob = new Blob([jsonStr], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'transactions.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  function renderAll(){
+    renderSummaryCards();
+    renderBalanceTrendChart();
+    renderSpendingBreakdownChart();
+    renderTransactionsTable();
+    renderInsights();
+    updateFormVisibility();
+  }
+
+  // Hide form for viewer
+  function updateFormVisibility(){
+    if(state.userRole === 'viewer'){
+      txForm.style.display = 'none';
+    } else {
+      txForm.style.display = 'flex';
+    }
+  }
+
+  // Initialization
+  function init(){
+    loadFromStorage();
+    
+    // Inject demo data ONLY if empty
+  if(state.transactions.length === 0){
+    state.transactions = getDemoData();
+    saveToStorage();
+  }
+
+    roleSelect.value = state.userRole;
+    darkModeToggle.textContent = state.darkMode ? '☀️ Light Mode' : '🌙 Dark Mode';
+    renderAll();
+  }
+
+  // Run
+  init();
+
+})();
+</script>
+
+</body>
+</html>
